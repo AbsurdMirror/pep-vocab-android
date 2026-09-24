@@ -1,0 +1,19 @@
+{
+  "name": "人教高中英语词卡",
+  "short_name": "高中词卡",
+  "description": "离线随机学习人教版高中英语 2019 七册词汇",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef3f5",
+  "theme_color": "#0d2538",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
