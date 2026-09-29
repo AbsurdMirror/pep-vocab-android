@@ -38,6 +38,18 @@ h1 { margin: 0; color: var(--navy); font: 750 clamp(2rem, 7vw, 3.7rem)/1.05 Geor
 .offline-badge { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 99px; background: rgba(255,255,255,.58); color: var(--navy-2); font-weight: 700; font-size: .78rem; }
 .offline-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #38a169; }
 
+.source-switcher { margin-bottom: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,.66); }
+.source-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.source-heading strong { color: var(--navy); font-size: .92rem; }
+.source-heading span { color: var(--muted); font-size: .74rem; }
+.source-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.source-option { min-width: 0; padding: 12px; text-align: left; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); color: var(--navy); cursor: pointer; }
+.source-option span, .source-option small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source-option span { font-weight: 750; font-size: .84rem; }
+.source-option small { margin-top: 5px; color: var(--muted); font-size: .7rem; }
+.source-option.active { border-color: var(--navy); background: var(--navy); color: white; box-shadow: 0 7px 18px rgba(13,37,56,.16); }
+.source-option.active small { color: #c8d6df; }
+
 .overview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
 .stat { padding: 15px; border-radius: 16px; background: rgba(255,255,255,.66); border: 1px solid rgba(205,217,221,.8); }
 .stat-value { display: block; color: var(--navy); font: 700 1.3rem/1.2 Georgia, serif; }
@@ -109,6 +121,9 @@ h1 { margin: 0; color: var(--navy); font: 750 clamp(2rem, 7vw, 3.7rem)/1.05 Geor
   .offline-badge { padding: 7px 9px; }
   .offline-badge span { display: none; }
   .mode-grid { grid-template-columns: 1fr; }
+  .source-options { grid-template-columns: 1fr; }
+  .source-option { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .source-option small { margin-top: 0; }
   .mode-card { min-height: 150px; }
   .mode-card h2 { margin-top: 19px; }
   .overview { gap: 7px; }

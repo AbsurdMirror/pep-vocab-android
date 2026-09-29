@@ -1,6 +1,12 @@
 const app = document.querySelector("#app");
-const STORAGE_KEY = "pep-vocab-cards:v1";
+const STORAGE_KEY = "pep-vocab-cards:v2";
+const LEGACY_STORAGE_KEY = "pep-vocab-cards:v1";
 const MODE_LABELS = { all: "全部单词", favorites: "收藏夹", unfavorited: "未收藏" };
+const SOURCE_META = {
+  lilinji: { label: "lilinji/English", short: "lilinji", count: 2731 },
+  anki: { label: "Anki：2019 人教版七册", short: "Anki", count: 2578 },
+  maimemo: { label: "墨墨词库导出项目", short: "墨墨", count: 2728 }
+};
 
 const icons = {
   back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>`,
@@ -19,14 +25,41 @@ let toastTimer;
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved?.sources) {
+      return {
+        activeSource: SOURCE_META[saved.activeSource] ? saved.activeSource : "lilinji",
+        sources: Object.fromEntries(Object.keys(SOURCE_META).map(id => [id, normalizeSourceState(saved.sources[id])]))
+      };
+    }
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY));
     return {
-      favorites: Array.isArray(saved?.favorites) ? saved.favorites : [],
-      sessions: saved?.sessions && typeof saved.sessions === "object" ? saved.sessions : {}
+      activeSource: "lilinji",
+      sources: {
+        lilinji: normalizeSourceState(legacy),
+        anki: normalizeSourceState(),
+        maimemo: normalizeSourceState()
+      }
     };
   } catch {
-    return { favorites: [], sessions: {} };
+    return freshState();
   }
 }
+
+function normalizeSourceState(value = {}) {
+  return {
+    favorites: Array.isArray(value?.favorites) ? value.favorites : [],
+    sessions: value?.sessions && typeof value.sessions === "object" ? value.sessions : {}
+  };
+}
+
+function freshState() {
+  return {
+    activeSource: "lilinji",
+    sources: Object.fromEntries(Object.keys(SOURCE_META).map(id => [id, normalizeSourceState()]))
+  };
+}
+
+function sourceState() { return state.sources[state.activeSource]; }
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -37,7 +70,7 @@ function wordKey(word) {
 }
 
 function getPool(mode) {
-  const favorites = new Set(state.favorites);
+  const favorites = new Set(sourceState().favorites);
   if (mode === "favorites") return words.filter(word => favorites.has(wordKey(word)));
   if (mode === "unfavorited") return words.filter(word => !favorites.has(wordKey(word)));
   return words;
@@ -53,7 +86,7 @@ function shuffle(items) {
 }
 
 function validSession(mode) {
-  const session = state.sessions[mode];
+  const session = sourceState().sessions[mode];
   return session && Array.isArray(session.queue) && Number.isInteger(session.index) && session.queue.length > 0;
 }
 
@@ -63,7 +96,7 @@ function startMode(mode, forceNew = false) {
   const pool = getPool(mode);
   if (!pool.length) return renderEmpty(mode);
   if (forceNew || !validSession(mode)) {
-    state.sessions[mode] = { queue: shuffle(pool.map(wordKey)), index: 0, startedAt: Date.now() };
+    sourceState().sessions[mode] = { queue: shuffle(pool.map(wordKey)), index: 0, startedAt: Date.now() };
     saveState();
   }
   renderStudy();
@@ -73,7 +106,7 @@ function findWord(key) {
   return words.find(word => wordKey(word) === key);
 }
 
-function currentSession() { return state.sessions[activeMode]; }
+function currentSession() { return sourceState().sessions[activeMode]; }
 function currentWord() {
   const session = currentSession();
   return session ? findWord(session.queue[session.index]) : null;
@@ -81,14 +114,14 @@ function currentWord() {
 
 function renderHome() {
   activeMode = null;
-  const favoriteCount = state.favorites.length;
+  const favoriteCount = sourceState().favorites.length;
   const modes = [
     { id: "all", title: "全部单词随机", count: words.length, icon: "Aa", cls: "" },
     { id: "favorites", title: "收藏夹随机", count: favoriteCount, icon: "★", cls: "favorite" },
     { id: "unfavorited", title: "未收藏随机", count: words.length - favoriteCount, icon: "○", cls: "unfavorite" }
   ];
   const cards = modes.map(mode => {
-    const session = state.sessions[mode.id];
+    const session = sourceState().sessions[mode.id];
     const has = validSession(mode.id);
     const done = has ? Math.min(session.index + 1, session.queue.length) : 0;
     const percent = has ? Math.round(done / session.queue.length * 100) : 0;
@@ -105,28 +138,47 @@ function renderHome() {
 
   app.innerHTML = `<main class="home">
     <header class="home-header">
-      <div><p class="eyebrow">PEP · 2019</p><h1>高中英语词卡</h1><p class="subtitle">七册词汇，随机学习，进度留在本机。</p></div>
+      <div><p class="eyebrow">PEP · 2019</p><h1>高中英语词卡</h1><p class="subtitle">三套内置词源，随机学习，进度留在本机。</p></div>
       <span class="offline-badge"><span>可离线使用</span></span>
     </header>
+    <section class="source-switcher" aria-label="切换词源">
+      <div class="source-heading"><strong>当前词源</strong><span>收藏与进度分开保存</span></div>
+      <div class="source-options">${Object.entries(SOURCE_META).map(([id, meta]) => `<button class="source-option ${id === state.activeSource ? "active" : ""}" data-source="${id}"><span>${escapeHtml(meta.label)}</span><small>${meta.count.toLocaleString()} 条</small></button>`).join("")}</div>
+    </section>
     <section class="overview" aria-label="词库概览">
       <div class="stat"><span class="stat-value">${words.length.toLocaleString()}</span><span class="stat-label">全部词条</span></div>
       <div class="stat"><span class="stat-value">${favoriteCount.toLocaleString()}</span><span class="stat-label">已收藏</span></div>
       <div class="stat"><span class="stat-value">7</span><span class="stat-label">教材分册</span></div>
     </section>
     <section class="mode-grid">${cards}</section>
-    <p class="helper">学习顺序、当前位置和收藏均自动保存在当前设备。第一次完整打开后，可断网继续使用。</p>
+    <p class="helper">三套词库均已内置。学习顺序、当前位置和收藏自动保存在当前设备，可全程断网使用。</p>
   </main>`;
+  app.querySelectorAll("[data-source]").forEach(button => button.addEventListener("click", () => switchSource(button.dataset.source)));
   app.querySelectorAll("[data-mode]").forEach(button => button.addEventListener("click", () => startMode(button.dataset.mode)));
+}
+
+function switchSource(sourceId) {
+  if (!SOURCE_META[sourceId] || sourceId === state.activeSource) return;
+  state.activeSource = sourceId;
+  words = getSourceWords(sourceId);
+  validateCurrentSource();
+  saveState();
+  renderHome();
+}
+
+function getSourceWords(sourceId) {
+  const parts = window.VOCAB_SOURCES?.[sourceId];
+  return Array.isArray(parts) ? parts.flat() : [];
 }
 
 function renderStudy() {
   const session = currentSession();
   const word = currentWord();
   if (!word) return renderComplete();
-  const favorite = state.favorites.includes(wordKey(word));
+  const favorite = sourceState().favorites.includes(wordKey(word));
   const number = session.index + 1;
   const progress = Math.round(number / session.queue.length * 100);
-  const source = `${word.book} · ${word.unit}`;
+  const source = `${SOURCE_META[state.activeSource].short} · ${word.book} · ${word.unit}`;
 
   app.innerHTML = `<main class="study">
     <header class="study-top">
@@ -175,9 +227,10 @@ function toggleFavorite() {
   const word = currentWord();
   if (!word) return;
   const key = wordKey(word);
-  const index = state.favorites.indexOf(key);
-  if (index >= 0) state.favorites.splice(index, 1);
-  else state.favorites.push(key);
+  const favorites = sourceState().favorites;
+  const index = favorites.indexOf(key);
+  if (index >= 0) favorites.splice(index, 1);
+  else favorites.push(key);
   saveState();
   renderStudy();
   showToast(index >= 0 ? "已移出收藏夹" : "已加入收藏夹");
@@ -234,21 +287,26 @@ function showToast(message) {
 
 async function init() {
   try {
-    words = Array.isArray(window.VOCAB_PARTS) ? window.VOCAB_PARTS.flat() : [];
+    words = getSourceWords(state.activeSource);
     if (!words.length) throw new Error("词库为空");
-    const validKeys = new Set(words.map(wordKey));
-    state.favorites = state.favorites.filter(key => validKeys.has(key));
-    for (const [mode, session] of Object.entries(state.sessions)) {
-      if (!Array.isArray(session?.queue)) delete state.sessions[mode];
-      else {
-        session.queue = session.queue.filter(key => validKeys.has(key));
-        session.index = Math.min(Math.max(0, session.index || 0), session.queue.length);
-      }
-    }
+    validateCurrentSource();
     saveState();
     renderHome();
   } catch (error) {
     app.innerHTML = `<main class="empty-state"><div class="state-icon">!</div><h2>词库没有载入</h2><p>${escapeHtml(error.message)}。请重新打开应用。</p><div class="state-actions"><button class="state-button primary" onclick="location.reload()">重新加载</button></div></main>`;
+  }
+}
+
+function validateCurrentSource() {
+  const validKeys = new Set(words.map(wordKey));
+  const current = sourceState();
+  current.favorites = current.favorites.filter(key => validKeys.has(key));
+  for (const [mode, session] of Object.entries(current.sessions)) {
+      if (!Array.isArray(session?.queue)) delete current.sessions[mode];
+      else {
+        session.queue = session.queue.filter(key => validKeys.has(key));
+        session.index = Math.min(Math.max(0, session.index || 0), session.queue.length);
+      }
   }
 }
 

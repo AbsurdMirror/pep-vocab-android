@@ -1,0 +1,38 @@
+{
+  "lilinji": 2731,
+  "anki": 2578,
+  "maimemo": 2728,
+  "files": {
+    "anki": [
+      "anki-01.js",
+      "anki-02.js",
+      "anki-03.js",
+      "anki-04.js",
+      "anki-05.js",
+      "anki-06.js",
+      "anki-07.js",
+      "anki-08.js",
+      "anki-09.js",
+      "anki-10.js",
+      "anki-11.js",
+      "anki-12.js",
+      "anki-13.js"
+    ],
+    "maimemo": [
+      "maimemo-01.js",
+      "maimemo-02.js",
+      "maimemo-03.js",
+      "maimemo-04.js",
+      "maimemo-05.js",
+      "maimemo-06.js",
+      "maimemo-07.js",
+      "maimemo-08.js",
+      "maimemo-09.js",
+      "maimemo-10.js",
+      "maimemo-11.js",
+      "maimemo-12.js",
+      "maimemo-13.js",
+      "maimemo-14.js"
+    ]
+  }
+}
